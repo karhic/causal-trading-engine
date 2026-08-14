@@ -8,7 +8,7 @@ from causaltrader.adapters.ibkr import (
     IBKRContractSpec,
     IBKRSafetyError,
 )
-from causaltrader.models import DataEvent, OrderIntent, Side
+from causaltrader.models import Bar, DataEvent, OrderIntent, Side
 
 
 def make_adapter(*, read_only=True):
@@ -91,7 +91,7 @@ def test_engine_event_updates_last_price_and_drains_fills():
         instrument="SPY",
         event_time=datetime(2026, 8, 14, 14, 30, tzinfo=UTC),
         available_at=datetime(2026, 8, 14, 14, 31, tzinfo=UTC),
-        payload=SimpleNamespace(close=501.0),
+        payload=Bar(open=500.0, high=502.0, low=499.0, close=501.0),
     )
     assert adapter.on_data_event(event) == []
     assert adapter.last_price("SPY") == 501.0
