@@ -13,6 +13,23 @@ These are stronger than implementation details. A production strategy should not
 9. **Raw input retention**: live inputs should be append-archived before/while they are processed so the observed stream can be replayed exactly.
 10. **Idempotent submission key**: engine-generated orders receive deterministic client order IDs derived from strategy version + causal origin.
 11. **Frozen versions stay frozen**: signal changes create a new strategy version rather than rewriting the history of an existing forward test.
+12. **Canonical ledger**: the runtime's durable output is an append-only ledger of manifest, consumed events, strategy actions, orders and fills. Historical replay and live runs produce the same record types.
+13. **Analytics are downstream**: CAGR, Sharpe, drawdown, charts and research summaries are not part of strategy execution. They are computed from the canonical ledger by separate tooling.
+14. **Replay/live parity is testable**: a recorded live input stream replayed through the same strategy version must reproduce the same economically meaningful strategy actions/orders/fills, modulo explicitly documented venue effects.
+
+## Why the ledger boundary matters
+
+A backtest should not be a special analytics program that happens to contain the strategy. It is simply chronological replay through the production strategy interface.
+
+```text
+historical DataEvents -> ReplayEngine -> canonical ledger
+live DataEvents       -> LiveEngine   -> canonical ledger
+                                      |
+                                      +-> downstream analytics
+                                      +-> optional independent verifier
+```
+
+The strategy is upstream of the ledger. Analytics are downstream of it. No performance statistic is allowed to influence strategy execution or historical chronology.
 
 ## What is not yet guaranteed by v0.1
 
