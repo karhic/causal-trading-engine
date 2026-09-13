@@ -17,6 +17,7 @@ from .models import (
     TargetPosition,
     TargetWeight,
 )
+from .portfolio import DecisionOnlyPlanner, ExecutionPlanner
 from .strategy import Strategy, StrategyContext
 
 __all__ = [
@@ -26,6 +27,8 @@ __all__ = [
     "CausalDataStore",
     "CausalityViolation",
     "DataEvent",
+    "DecisionOnlyPlanner",
+    "ExecutionPlanner",
     "Fill",
     "FuturesChain",
     "InstrumentSpec",
