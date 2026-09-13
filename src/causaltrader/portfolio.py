@@ -1,9 +1,21 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Protocol
 
 from .broker import Broker
 from .models import OrderIntent, Side, StrategyAction, TargetPosition, TargetWeight
+
+
+class Planner(Protocol):
+    def plan(self, actions: Iterable[StrategyAction], broker: Broker) -> list[OrderIntent]: ...
+
+
+class DecisionOnlyPlanner:
+    """Log strategy actions without translating them into broker orders."""
+
+    def plan(self, actions: Iterable[StrategyAction], broker: Broker) -> list[OrderIntent]:
+        list(actions)
+        return []
 
 
 class ExecutionPlanner:
