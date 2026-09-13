@@ -11,7 +11,7 @@ from .broker import Broker
 from .clock import ReplayClock, WallClock
 from .data import CausalDataStore
 from .models import DataEvent, StrategyAction
-from .portfolio import ExecutionPlanner
+from .portfolio import ExecutionPlanner, Planner
 from .state import MemoryState
 from .strategy import Strategy, StrategyContext
 
@@ -27,7 +27,7 @@ class RunManifest:
 
 
 class EngineCore:
-    def __init__(self, *, strategy: Strategy, clock, data: CausalDataStore, broker: Broker, mode: str, audit: AuditLog | None = None, state: MutableMapping[str, Any] | None = None, planner: ExecutionPlanner | None = None, manifest: RunManifest | None = None, event_archive: JsonlEventArchive | None = None) -> None:
+    def __init__(self, *, strategy: Strategy, clock, data: CausalDataStore, broker: Broker, mode: str, audit: AuditLog | None = None, state: MutableMapping[str, Any] | None = None, planner: Planner | None = None, manifest: RunManifest | None = None, event_archive: JsonlEventArchive | None = None) -> None:
         self.strategy = strategy
         self.clock = clock
         self.data = data
@@ -82,7 +82,7 @@ class EngineCore:
 
 
 class ReplayEngine:
-    def __init__(self, *, strategy: Strategy, broker: Broker, events: Iterable[DataEvent], audit: AuditLog | None = None, state: MutableMapping[str, Any] | None = None, config: dict[str, Any] | None = None, code_revision: str = "unknown") -> None:
+    def __init__(self, *, strategy: Strategy, broker: Broker, events: Iterable[DataEvent], audit: AuditLog | None = None, state: MutableMapping[str, Any] | None = None, config: dict[str, Any] | None = None, code_revision: str = "unknown", planner: Planner | None = None) -> None:
         ordered = sorted(events, key=lambda e: (e.available_at, e.event_time, e.event_id))
         if not ordered:
             raise ValueError("ReplayEngine requires at least one event")
@@ -90,7 +90,7 @@ class ReplayEngine:
         self.clock = ReplayClock(ordered[0].available_at)
         self.data = CausalDataStore(self.clock)
         sources = tuple(sorted({e.source for e in ordered}))
-        self.core = EngineCore(strategy=strategy, clock=self.clock, data=self.data, broker=broker, mode="backtest", audit=audit, state=state, manifest=RunManifest(strategy.name, strategy.version, "backtest", config or {}, sources, code_revision))
+        self.core = EngineCore(strategy=strategy, clock=self.clock, data=self.data, broker=broker, mode="backtest", audit=audit, state=state, planner=planner, manifest=RunManifest(strategy.name, strategy.version, "backtest", config or {}, sources, code_revision))
 
     @property
     def audit(self) -> AuditLog:
@@ -106,12 +106,12 @@ class ReplayEngine:
 
 
 class LiveEngine:
-    def __init__(self, *, strategy: Strategy, broker: Broker, audit: AuditLog | None = None, state: MutableMapping[str, Any] | None = None, config: dict[str, Any] | None = None, code_revision: str = "unknown", mode: str = "paper", event_archive: JsonlEventArchive | None = None) -> None:
+    def __init__(self, *, strategy: Strategy, broker: Broker, audit: AuditLog | None = None, state: MutableMapping[str, Any] | None = None, config: dict[str, Any] | None = None, code_revision: str = "unknown", mode: str = "paper", event_archive: JsonlEventArchive | None = None, planner: Planner | None = None) -> None:
         if mode not in {"paper", "live"}:
             raise ValueError("LiveEngine mode must be paper or live")
         self.clock = WallClock()
         self.data = CausalDataStore(self.clock)
-        self.core = EngineCore(strategy=strategy, clock=self.clock, data=self.data, broker=broker, mode=mode, audit=audit, state=state, manifest=RunManifest(strategy.name, strategy.version, mode, config or {}, (), code_revision), event_archive=event_archive)
+        self.core = EngineCore(strategy=strategy, clock=self.clock, data=self.data, broker=broker, mode=mode, audit=audit, state=state, planner=planner, manifest=RunManifest(strategy.name, strategy.version, mode, config or {}, (), code_revision), event_archive=event_archive)
 
     async def run(self, source: AsyncIterable[DataEvent]) -> AuditLog:
         self.core.initialize()
