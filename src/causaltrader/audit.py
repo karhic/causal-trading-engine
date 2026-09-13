@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Any
 
 
+LEDGER_SCHEMA_VERSION = 1
+
+
 @dataclass(frozen=True, slots=True)
 class AuditRecord:
     seq: int
@@ -46,9 +49,15 @@ class AuditLog:
         return record
 
     def decision_fingerprint(self) -> str:
-        """Stable representation of economically meaningful decisions."""
+        """Stable representation of economically meaningful decisions.
+
+        Audit timestamps are deliberately excluded. A replay performed later should
+        fingerprint identically to the original run if strategy actions, orders and
+        fills are identical.
+        """
         interesting = [
-            r for r in self.records
+            {"kind": r.kind, "payload": _encode(r.payload)}
+            for r in self.records
             if r.kind in {"strategy_action", "order_submitted", "fill"}
         ]
-        return json.dumps([_encode(r) for r in interesting], sort_keys=True, separators=(",", ":"))
+        return json.dumps(interesting, sort_keys=True, separators=(",", ":"))
