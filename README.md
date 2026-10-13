@@ -218,3 +218,16 @@ Those are additions only when an actual edge needs them.
 ## Design rule
 
 If a strategy can get information by any route other than `ctx.data`, or can place an order anywhere other than the broker abstraction, treat that as a bug.
+
+## Public reusable-library integration
+
+CausalTrader is an independent Python package, not a Freeburg-only module.
+Install the library from its GitHub source at an immutable commit, or locally
+with `python -m pip install .`. The [Freeburg system](https://github.com/karhic/alpha-strategies)
+uses the packaged engine for both archived replay and forward monitoring.
+
+The core contract deliberately separates strategy logic from the clock, causal
+data feed and broker simulator. A sample implementation is in `examples/` and
+acceptance tests in `tests/`. Version 0.1 is a research-grade implementation;
+it is **not** a guarantee of production-execution quality or a certified
+live-trading platform. The project is MIT licensed.
